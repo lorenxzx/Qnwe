@@ -1,18 +1,20 @@
--- // Aurora UI Library (ModuleScript)
-local Aurora = {}
-Aurora.__index = Aurora
+-- // Aurora Pro UI Library (ModuleScript)
+local AuroraPro = {}
+AuroraPro.__index = AuroraPro
 
--- Tema personalizável (cores profissionais)
-Aurora.Theme = {
+-- Tema com efeitos de vidro (glassmorphism)
+AuroraPro.Theme = {
     Primary = Color3.fromRGB(30, 30, 30),
     Secondary = Color3.fromRGB(40, 40, 40),
     Accent = Color3.fromRGB(100, 150, 255),
     Text = Color3.fromRGB(255, 255, 255),
-    Success = Color3.fromRGB(0, 200, 100),
-    Error = Color3.fromRGB(255, 100, 100),
     Background = Color3.fromRGB(20, 20, 20),
-    BorderRadius = UDim.new(0, 12),
-    Padding = 15,
+    GlassEffect = {
+        Transparency = 0.2,
+        Blur = 15
+    },
+    BorderRadius = UDim.new(0, 20),
+    Padding = 20,
     Shadow = {
         Color = Color3.fromRGB(0, 0, 0),
         Transparency = 0.3,
@@ -21,79 +23,104 @@ Aurora.Theme = {
     }
 }
 
--- Configurações de animação
-Aurora.Animation = {
-    Smoothness = 0.25,
-    Bounce = true
+-- Configurações avançadas
+AuroraPro.Animation = {
+    Smoothness = 0.3,
+    Bounce = true,
+    ParticleCount = 10
 }
 
 -- Inicializa a biblioteca
-function Aurora.new()
-    local self = setmetatable({}, Aurora)
+function AuroraPro.new()
+    local self = setmetatable({}, AuroraPro)
     self.ScreenGui = Instance.new("ScreenGui")
     self.ScreenGui.IgnoreGuiInset = true
     self.ScreenGui.ResetOnSpawn = false
     return self
 end
 
--- Cria uma janela com efeito de arrastar, sombra e animação
-function Aurora:CreateWindow(title, size)
+-- Cria uma janela com efeito de vidro e sombras dinâmicas
+function AuroraPro:CreateWindow(title, size)
     local window = {
-        Components = {},
-        SearchResults = {}
+        Components = {}
     }
 
-    -- Container principal
+    -- Container principal com efeito de vidro
     local container = self:Create("Frame", {
-        Size = size or UDim2.new(0, 600, 0, 450),
-        Position = UDim2.new(0.5, -300, 0.5, -225),
+        Size = size or UDim2.new(0, 700, 0, 500),
+        Position = UDim2.new(0.5, -350, 0.5, -250),
         BackgroundColor3 = self.Theme.Primary,
         BorderSizePixel = 0,
         ClipsDescendants = true
     }, self.ScreenGui)
 
-    -- Sombra com gradiente
+    -- Efeito de vidro (glassmorphism)
+    self:Create("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+        }),
+        Rotation = 90,
+        Parent = container
+    })
+    local blur = self:Create("BlurEffect", {
+        Size = self.Theme.GlassEffect.Blur,
+        Parent = container
+    })
+    container.BackgroundTransparency = self.Theme.GlassEffect.Transparency
+
+    -- Sombra dinâmica
     self:Create("UIStroke", {
         Color = self.Theme.Shadow.Color,
         Thickness = 2,
         Transparency = self.Theme.Shadow.Transparency,
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    }, container)
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Parent = container
+    })
 
-    -- Barra de título
+    -- Barra de título com ícone
     local titleBar = self:Create("Frame", {
         Size = UDim2.new(1, 0, 0, 60),
-        BackgroundColor3 = self.Theme.Secondary
+        BackgroundColor3 = self.Theme.Secondary,
+        BackgroundTransparency = 0.3
     }, container)
+
+    -- Ícone da janela
+    local icon = self:Create("ImageLabel", {
+        Image = "rbxassetid://10307049535", -- Ícone personalizado
+        ImageColor3 = self.Theme.Text,
+        Size = UDim2.new(0, 30, 0, 30),
+        Position = UDim2.new(0, 20, 0, 15),
+        Parent = titleBar
+    })
 
     -- Título
     self:Create("TextLabel", {
         Text = title,
         Font = Enum.Font.GothamBold,
         TextColor3 = self.Theme.Text,
-        TextSize = 20,
-        Size = UDim2.new(1, 0, 1, 0),
+        TextSize = 22,
+        Position = UDim2.new(0, 60, 0, 10),
+        Size = UDim2.new(1, -80, 1, 0),
         BackgroundTransparency = 1
     }, titleBar)
 
-    -- Botão de fechar
+    -- Botão de fechar com animação de partículas
     local closeButton = self:Create("ImageButton", {
-        Image = "rbxassetid://10307049535",  -- Ícone de X moderno
+        Image = "rbxassetid://10307049535",
         ImageColor3 = self.Theme.Text,
-        Size = UDim2.new(0, 35, 0, 35),
-        Position = UDim2.new(1, -40, 0, 12),
-        BackgroundTransparency = 1
-    }, titleBar)
+        Size = UDim2.new(0, 40, 0, 40),
+        Position = UDim2.new(1, -60, 0, 10),
+        BackgroundTransparency = 1,
+        Parent = titleBar
+    })
 
-    -- Barra de pesquisa
-    local searchBox = self:CreateSearchBar(container)
-
-    -- Container de conteúdo com Scroll
+    -- Container de conteúdo
     local content = self:Create("ScrollingFrame", {
-        Size = UDim2.new(1, 0, 1, -100),
+        Size = UDim2.new(1, 0, 1, -60),
         Position = UDim2.new(0, 0, 0, 60),
         BackgroundColor3 = self.Theme.Background,
-        ScrollBarThickness = 6,
+        ScrollBarThickness = 8,
         CanvasSize = UDim2.new(0, 0, 0, 0)
     }, container)
 
@@ -114,7 +141,7 @@ function Aurora:CreateWindow(title, size)
         if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
             local delta = input.Position - dragStart
             local newPosition = startPos + UDim2.new(0, delta.X, 0, delta.Y)
-            self:Tween(container, {Position = newPosition}, 0.1)
+            self:Tween(container, {Position = newPosition}, 0.15)
         end
     end)
 
@@ -132,91 +159,127 @@ function Aurora:CreateWindow(title, size)
         self:Tween(closeButton, {ImageColor3 = self.Theme.Text}, 0.2)
     end)
 
-    -- Fecha a janela com animação
+    -- Fecha a janela com animação de partículas
     closeButton.MouseButton1Click:Connect(function()
+        local particles = self:Create("ParticleEmitter", {
+            Rate = 50,
+            Lifetime = 2,
+            Speed = 100,
+            Size = 5,
+            Color = self.Theme.Accent,
+            Parent = container
+        })
         self:Tween(container, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, function()
             container:Destroy()
         end)
     end)
 
     -- Métodos da janela
-    window.AddButton = function(_, text, callback)
-        local button = self:CreateButton(content, text, callback)
-        return button
-    end
-
-    window.AddToggle = function(_, text, default, callback)
-        local toggle = self:CreateToggle(content, text, default, callback)
-        return toggle
-    end
-
-    window.AddSearchBar = function(_)
-        return searchBox
-    end
+    window.AddSearch = function(_) return self:CreateSearch(content) end
+    window.AddSection = function(_) return self:CreateSection(content) end
 
     return window
 end
 
--- Cria uma barra de pesquisa estilizada
-function Aurora:CreateSearchBar(parent)
-    local searchBar = {
+-- Cria uma barra de pesquisa com filtragem
+function AuroraPro:CreateSearch(parent)
+    local search = {
         Value = "",
-        Active = true
+        Active = false
     }
 
-    -- Container da barra
-    local searchContainer = self:Create("Frame", {
-        Size = UDim2.new(1, -40, 0, 45),
+    local container = self:Create("Frame", {
+        Size = UDim2.new(1, -40, 0, 60),
         Position = UDim2.new(0, 20, 0, 20),
         BackgroundColor3 = self.Theme.Secondary,
-        BorderSizePixel = 0
-    }, parent)
+        BackgroundTransparency = 0.3,
+        Parent = parent
+    })
 
-    -- Caixa de texto
     local textBox = self:Create("TextBox", {
         Text = "",
         PlaceholderText = "Pesquisar...",
         Font = Enum.Font.Gotham,
         TextColor3 = self.Theme.Text,
-        TextSize = 16,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, -40, 1, 0),
-        Position = UDim2.new(0, 15, 0, 0),
-        ClearTextOnFocus = false
-    }, searchContainer)
+        TextSize = 18,
+        Size = UDim2.new(1, -50, 1, 0),
+        Position = UDim2.new(0, 20, 0, 0),
+        Parent = container
+    })
 
-    -- Botão de limpar
     local clearButton = self:Create("ImageButton", {
-        Image = "rbxassetid://10307049535",  -- Ícone de X
+        Image = "rbxassetid://10307049535",
         ImageColor3 = self.Theme.Text,
-        Size = UDim2.new(0, 25, 0, 25),
-        Position = UDim2.new(1, -30, 0, 10),
-        BackgroundTransparency = 1
-    }, searchContainer)
+        Size = UDim2.new(0, 30, 0, 30),
+        Position = UDim2.new(1, -50, 0, 15),
+        Parent = container
+    })
 
-    -- Efeito de foco
     textBox.Focused:Connect(function()
-        self:Tween(searchContainer, {BackgroundColor3 = self.Theme.Accent}, 0.2)
+        self:Tween(container, {BackgroundColor3 = self.Theme.Accent}, 0.2)
+        search.Active = true
     end)
     textBox.FocusLost:Connect(function()
-        self:Tween(searchContainer, {BackgroundColor3 = self.Theme.Secondary}, 0.2)
+        self:Tween(container, {BackgroundColor3 = self.Theme.Secondary}, 0.2)
+        search.Active = false
     end)
 
-    -- Atualiza o valor
     textBox:GetPropertyChangedSignal("Text"):Connect(function()
-        searchBar.Value = textBox.Text
+        search.Value = textBox.Text
     end)
 
-    -- Limpa o texto
     clearButton.MouseButton1Click:Connect(function()
         textBox.Text = ""
     end)
 
-    return searchBar
+    return search
 end
 
--- Cria um botão com efeito de clique
-function Aurora:CreateButton(parent, text, callback)
+-- Cria uma seção expansível
+function AuroraPro:CreateSection(parent, title)
+    local section = {
+        Expanded = true,
+        Content = {}
+    }
+
+    local header = self:Create("TextButton", {
+        Text = title,
+        Font = Enum.Font.GothamBold,
+        TextColor3 = self.Theme.Text,
+        TextSize = 18,
+        Size = UDim2.new(1, -40, 0, 40),
+        Position = UDim2.new(0, 20, 0, 10),
+        BackgroundColor3 = self.Theme.Secondary,
+        BackgroundTransparency = 0.3,
+        Parent = parent
+    })
+
+    local contentFrame = self:Create("Frame", {
+        Size = UDim2.new(1, -40, 0, 0),
+        Position = UDim2.new(0, 20, 0, 50),
+        BackgroundColor3 = self.Theme.Secondary,
+        BackgroundTransparency = 0.3,
+        Parent = parent
+    })
+
+    header.MouseButton1Click:Connect(function()
+        section.Expanded = not section.Expanded
+        self:Tween(contentFrame, {
+            Size = UDim2.new(1, -40, 0, section.Expanded and 200 or 0)
+        }, 0.3)
+    end)
+
+    section.AddButton = function(text, callback)
+        local button = self:CreateButton(contentFrame, text, callback)
+        table.insert(section.Content, button)
+        return button
+    end
+
+    return section
+end
+
+-- Botão com ícone
+function AuroraPro:CreateButton(parent, text, callback)
     local button = self:Create("TextButton", {
         Text = text,
         Font = Enum.Font.GothamSemibold,
@@ -225,10 +288,18 @@ function Aurora:CreateButton(parent, text, callback)
         Size = UDim2.new(1, -40, 0, 50),
         Position = UDim2.new(0, 20, 0, 10),
         BackgroundColor3 = self.Theme.Secondary,
-        AutoButtonColor = false
-    }, parent)
+        BackgroundTransparency = 0.3,
+        Parent = parent
+    })
 
-    -- Efeito de hover
+    local icon = self:Create("ImageLabel", {
+        Image = "rbxassetid://10307049535",
+        ImageColor3 = self.Theme.Text,
+        Size = UDim2.new(0, 25, 0, 25),
+        Position = UDim2.new(0, 10, 0.5, -12.5),
+        Parent = button
+    })
+
     button.MouseEnter:Connect(function()
         self:Tween(button, {BackgroundColor3 = self.Theme.Accent}, 0.2)
     end)
@@ -236,71 +307,13 @@ function Aurora:CreateButton(parent, text, callback)
         self:Tween(button, {BackgroundColor3 = self.Theme.Secondary}, 0.2)
     end)
 
-    -- Efeito de clique
-    button.MouseButton1Down:Connect(function()
-        self:Tween(button, {BackgroundColor3 = Color3.fromRGB(80, 80, 80)}, 0.1)
-    end)
-    button.MouseButton1Up:Connect(function()
-        self:Tween(button, {BackgroundColor3 = self.Theme.Accent}, 0.1)
-        callback()
-    end)
+    button.MouseButton1Click:Connect(callback)
 
     return button
 end
 
--- Cria um toggle com animação
-function Aurora:CreateToggle(parent, text, default, callback)
-    local toggle = {
-        Value = default,
-        Button = self:Create("TextButton", {
-            Text = text,
-            Font = Enum.Font.GothamSemibold,
-            TextColor3 = self.Theme.Text,
-            TextSize = 16,
-            Size = UDim2.new(1, -40, 0, 50),
-            Position = UDim2.new(0, 20, 0, 10),
-            BackgroundColor3 = self.Theme.Secondary,
-            AutoButtonColor = false
-        }, parent)
-    }
-
-    -- Indicador de toggle
-    local indicator = self:Create("Frame", {
-        Size = UDim2.new(0, 30, 0, 30),
-        Position = UDim2.new(1, -40, 0, 10),
-        BackgroundColor3 = self.Theme.Accent,
-        BorderSizePixel = 0
-    }, toggle.Button)
-
-    -- Animação inicial
-    if not default then
-        indicator.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    end
-
-    -- Efeito de clique
-    toggle.Button.MouseButton1Click:Connect(function()
-        toggle.Value = not toggle.Value
-        self:Tween(indicator, {
-            BackgroundColor3 = toggle.Value and self.Theme.Accent or Color3.fromRGB(60, 60, 60)
-        }, 0.2)
-        callback(toggle.Value)
-    end)
-
-    return toggle
-end
-
--- Função auxiliar para criar instâncias
-function Aurora:Create(className, properties, parent)
-    local instance = Instance.new(className)
-    for prop, value in pairs(properties) do
-        instance[prop] = value
-    end
-    instance.Parent = parent
-    return instance
-end
-
--- Sistema de animação avançado
-function Aurora:Tween(instance, properties, duration, callback)
+-- Animação avançada
+function AuroraPro:Tween(instance, properties, duration, callback)
     local tweenInfo = TweenInfo.new(
         duration or 0.5,
         self.Animation.Bounce and Enum.EasingStyle.Elastic or Enum.EasingStyle.Quad,
@@ -314,4 +327,4 @@ function Aurora:Tween(instance, properties, duration, callback)
     return tween
 end
 
-return Aurora
+return AuroraPro
