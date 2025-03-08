@@ -1,143 +1,253 @@
--- CoolUILibrary.lua (ModuleScript)
-local CoolUI = {}
-CoolUI.__index = CoolUI
+-- // UI Library (ModuleScript)
+local Library = {}
+Library.__index = Library
 
 -- Tema padrão (cores modernas)
-local theme = {
+Library.Theme = {
     Primary = Color3.fromRGB(35, 35, 35),
-    Secondary = Color3.fromRGB(50, 50, 50),
-    Accent = Color3.fromRGB(0, 162, 255),
+    Secondary = Color3.fromRGB(45, 45, 45),
+    Accent = Color3.fromRGB(90, 160, 255),
     Text = Color3.fromRGB(255, 255, 255),
+    Background = Color3.fromRGB(25, 25, 25),
     BorderRadius = UDim.new(0, 10),
     Padding = 10,
-    Shadow = Color3.fromRGB(0, 0, 0)
+    Shadow = {
+        Color = Color3.fromRGB(0, 0, 0),
+        Transparency = 0.5,
+        Offset = Vector2.new(3, 3)
+    }
 }
 
--- Configura um elemento UI com estilo
-function CoolUI:StyleElement(element)
-    element.BackgroundColor3 = theme.Primary
-    element.BorderSizePixel = 0
-    element.BackgroundTransparency = 0.1
-    element.ClipsDescendants = true
-    return element
+-- Configurações de animação
+Library.Animation = {
+    Smoothness = 0.2,  -- 0 = instantâneo, 1 = lento
+    Bounce = false
+}
+
+-- Inicializa a biblioteca
+function Library.new()
+    local self = setmetatable({}, Library)
+    self.ScreenGui = Instance.new("ScreenGui")
+    self.ScreenGui.IgnoreGuiInset = true
+    self.ScreenGui.ResetOnSpawn = false
+    return self
 end
 
--- Cria uma janela arrastável
-function CoolUI:CreateWindow(title, size)
-    local window = self:StyleElement(Instance.new("Frame"))
-    window.Size = size or UDim2.new(0, 400, 0, 300)
-    window.Position = UDim2.new(0.5, -200, 0.5, -150)
-    window.Parent = self.screenGui
+-- Cria uma janela com efeito de arrastar e animação
+function Library:CreateWindow(title, size)
+    local window = {
+        Components = {},
+        Connections = {}
+    }
+
+    -- Container principal
+    local container = self:Create("Frame", {
+        Size = size or UDim2.new(0, 500, 0, 350),
+        Position = UDim2.new(0.5, -250, 0.5, -175),
+        BackgroundColor3 = self.Theme.Primary,
+        BorderSizePixel = 0,
+        ClipsDescendants = true
+    }, self.ScreenGui)
 
     -- Sombra
-    local shadow = Instance.new("UIStroke")
-    shadow.Color = theme.Shadow
-    shadow.Thickness = 3
-    shadow.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    shadow.Parent = window
+    self:Create("UIStroke", {
+        Color = self.Theme.Shadow.Color,
+        Thickness = 2,
+        Transparency = self.Theme.Shadow.Transparency,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    }, container)
 
     -- Barra de título
-    local titleBar = self:StyleElement(Instance.new("Frame"))
-    titleBar.Size = UDim2.new(1, 0, 0, 40)
-    titleBar.Position = UDim2.new(0, 0, 0, 0)
-    titleBar.BackgroundColor3 = theme.Secondary
-    titleBar.Parent = window
+    local titleBar = self:Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 45),
+        BackgroundColor3 = self.Theme.Secondary
+    }, container)
 
     -- Título
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Text = title
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextColor3 = theme.Text
-    titleLabel.TextSize = 18
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Size = UDim2.new(1, 0, 1, 0)
-    titleLabel.Parent = titleBar
+    self:Create("TextLabel", {
+        Text = title,
+        Font = Enum.Font.GothamBold,
+        TextColor3 = self.Theme.Text,
+        TextSize = 18,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1
+    }, titleBar)
 
     -- Botão de fechar
-    local closeButton = Instance.new("TextButton")
-    closeButton.Text = "×"
-    closeButton.Font = Enum.Font.GothamBold
-    closeButton.TextColor3 = theme.Text
-    closeButton.TextSize = 24
-    closeButton.BackgroundTransparency = 1
-    closeButton.Size = UDim2.new(0, 40, 1, 0)
-    closeButton.Position = UDim2.new(1, -40, 0, 0)
-    closeButton.Parent = titleBar
+    local closeButton = self:Create("TextButton", {
+        Text = "×",
+        Font = Enum.Font.GothamBold,
+        TextColor3 = self.Theme.Text,
+        TextSize = 24,
+        Size = UDim2.new(0, 45, 1, 0),
+        Position = UDim2.new(1, -45, 0, 0),
+        BackgroundTransparency = 1
+    }, titleBar)
 
     -- Container de conteúdo
-    local content = self:StyleElement(Instance.new("Frame"))
-    content.Size = UDim2.new(1, 0, 1, -40)
-    content.Position = UDim2.new(0, 0, 0, 40)
-    content.Parent = window
+    local content = self:Create("ScrollingFrame", {
+        Size = UDim2.new(1, 0, 1, -45),
+        Position = UDim2.new(0, 0, 0, 45),
+        BackgroundColor3 = self.Theme.Background,
+        ScrollBarThickness = 5,
+        CanvasSize = UDim2.new(0, 0, 0, 0)
+    }, container)
 
-    -- Permitir arrastar
+    -- Configurações de arrastar
     local dragging = false
+    local dragStart = Vector2.new()
+    local startPos = Vector2.new()
+
     titleBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
+            dragStart = input.Position
+            startPos = container.Position
         end
     end)
+
+    titleBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+            local delta = input.Position - dragStart
+            local newPosition = startPos + UDim2.new(0, delta.X, 0, delta.Y)
+            self:Tween(container, {Position = newPosition}, 0.1)
+        end
+    end)
+
     titleBar.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = false
         end
     end)
-    titleBar.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - input.PositionPrevious
-            window.Position = window.Position + UDim2.new(0, delta.X, 0, delta.Y)
-        end
-    end)
 
-    -- Adicionar efeito de hover no botão de fechar
+    -- Animação de hover no botão de fechar
     closeButton.MouseEnter:Connect(function()
-        closeButton.TextColor3 = theme.Accent
+        self:Tween(closeButton, {TextColor3 = self.Theme.Accent}, 0.2)
     end)
     closeButton.MouseLeave:Connect(function()
-        closeButton.TextColor3 = theme.Text
+        self:Tween(closeButton, {TextColor3 = self.Theme.Text}, 0.2)
     end)
 
-    -- Retornar a janela e o conteúdo
-    return {
-        Window = window,
-        Content = content,
-        CloseButton = closeButton
-    }
+    -- Fecha a janela
+    closeButton.MouseButton1Click:Connect(function()
+        self:Tween(container, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, function()
+            container:Destroy()
+        end)
+    end)
+
+    -- Métodos da janela
+    window.AddButton = function(_, text, callback)
+        local button = self:CreateButton(content, text, callback)
+        return button
+    end
+
+    window.AddToggle = function(_, text, default, callback)
+        local toggle = self:CreateToggle(content, text, default, callback)
+        return toggle
+    end
+
+    window.AddLabel = function(_, text)
+        local label = self:CreateLabel(content, text)
+        return label
+    end
+
+    return window
 end
 
 -- Cria um botão estilizado
-function CoolUI:CreateButton(parent, text, callback)
-    local button = self:StyleElement(Instance.new("TextButton"))
-    button.Text = text
-    button.Font = Enum.Font.GothamSemibold
-    button.TextColor3 = theme.Text
-    button.TextSize = 16
-    button.Size = UDim2.new(1, -20, 0, 40)
-    button.Position = UDim2.new(0, 10, 0, 10)
-    button.Parent = parent
+function Library:CreateButton(parent, text, callback)
+    local button = self:Create("TextButton", {
+        Text = text,
+        Font = Enum.Font.GothamSemibold,
+        TextColor3 = self.Theme.Text,
+        TextSize = 16,
+        Size = UDim2.new(1, -20, 0, 40),
+        BackgroundColor3 = self.Theme.Secondary,
+        Position = UDim2.new(0, 10, 0, 10)
+    }, parent)
 
-    -- Efeito de clique
-    button.MouseButton1Down:Connect(function()
-        button.BackgroundColor3 = theme.Accent
-    end)
-    button.MouseButton1Up:Connect(function()
-        button.BackgroundColor3 = theme.Primary
+    button.MouseButton1Click:Connect(function()
+        self:Tween(button, {BackgroundColor3 = self.Theme.Accent}, 0.1)
         callback()
-    end)
-    button.MouseLeave:Connect(function()
-        button.BackgroundColor3 = theme.Primary
+        self:Tween(button, {BackgroundColor3 = self.Theme.Secondary}, 0.1)
     end)
 
     return button
 end
 
--- Inicializa a biblioteca
-function CoolUI.new()
-    local self = setmetatable({}, CoolUI)
-    self.screenGui = Instance.new("ScreenGui")
-    self.screenGui.IgnoreGuiInset = true
-    self.screenGui.ResetOnSpawn = false
-    return self
+-- Cria um toggle
+function Library:CreateToggle(parent, text, default, callback)
+    local toggle = {
+        Value = default,
+        Button = self:Create("TextButton", {
+            Text = text,
+            Font = Enum.Font.GothamSemibold,
+            TextColor3 = self.Theme.Text,
+            TextSize = 16,
+            Size = UDim2.new(1, -20, 0, 40),
+            BackgroundColor3 = self.Theme.Secondary,
+            Position = UDim2.new(0, 10, 0, 10)
+        }, parent)
+    }
+
+    local indicator = self:Create("Frame", {
+        Size = UDim2.new(0, 20, 0, 20),
+        Position = UDim2.new(1, -30, 0, 10),
+        BackgroundColor3 = self.Theme.Accent,
+        AnchorPoint = Vector2.new(1, 0)
+    }, toggle.Button)
+
+    if not default then
+        indicator.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    end
+
+    toggle.Button.MouseButton1Click:Connect(function()
+        toggle.Value = not toggle.Value
+        self:Tween(indicator, {
+            BackgroundColor3 = toggle.Value and self.Theme.Accent or Color3.fromRGB(100, 100, 100)
+        }, 0.2)
+        callback(toggle.Value)
+    end)
+
+    return toggle
 end
 
-return CoolUI
+-- Cria uma label simples
+function Library:CreateLabel(parent, text)
+    return self:Create("TextLabel", {
+        Text = text,
+        Font = Enum.Font.Gotham,
+        TextColor3 = self.Theme.Text,
+        TextSize = 14,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -20, 0, 30),
+        Position = UDim2.new(0, 10, 0, 10)
+    }, parent)
+end
+
+-- Função auxiliar para criar instâncias
+function Library:Create(className, properties, parent)
+    local instance = Instance.new(className)
+    for prop, value in pairs(properties) do
+        instance[prop] = value
+    end
+    instance.Parent = parent
+    return instance
+end
+
+-- Sistema de animação suave
+function Library:Tween(instance, properties, duration, callback)
+    local tweenInfo = TweenInfo.new(
+        duration or 0.5,
+        Enum.EasingStyle.Quad,
+        Enum.EasingDirection.Out
+    )
+    local tween = game:GetService("TweenService"):Create(instance, tweenInfo, properties)
+    tween.Completed:Connect(function()
+        if callback then callback() end
+    end)
+    tween:Play()
+    return tween
+end
+
+return Library
