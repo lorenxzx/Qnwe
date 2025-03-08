@@ -55,19 +55,18 @@ function AuroraPro:CreateWindow(title, size)
     }, self.ScreenGui)
 
     -- Efeito de vidro (glassmorphism)
-    self:Create("UIGradient", {
-        Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
-        }),
-        Rotation = 90,
-        Parent = container
-    })
-    local blur = self:Create("BlurEffect", {
-        Size = self.Theme.GlassEffect.Blur,
-        Parent = container
-    })
-    container.BackgroundTransparency = self.Theme.GlassEffect.Transparency
+local blur = Instance.new("BlurEffect")
+blur.Size = self.Theme.GlassEffect.Blur
+blur.Parent = self.ScreenGui  -- Aplicado ao ScreenGui, não ao Frame
+
+local container = self:Create("Frame", {
+    Size = size or UDim2.new(0, 700, 0, 500),
+    Position = UDim2.new(0.5, -350, 0.5, -250),
+    BackgroundColor3 = self.Theme.Primary,
+    BackgroundTransparency = self.Theme.GlassEffect.Transparency,
+    BorderSizePixel = 0,
+    ClipsDescendants = true
+}, self.ScreenGui)
 
     -- Sombra dinâmica
     self:Create("UIStroke", {
@@ -105,15 +104,25 @@ function AuroraPro:CreateWindow(title, size)
         BackgroundTransparency = 1
     }, titleBar)
 
-    -- Botão de fechar com animação de partículas
-    local closeButton = self:Create("ImageButton", {
-        Image = "rbxassetid://10307049535",
-        ImageColor3 = self.Theme.Text,
-        Size = UDim2.new(0, 40, 0, 40),
-        Position = UDim2.new(1, -60, 0, 10),
-        BackgroundTransparency = 1,
-        Parent = titleBar
-    })
+    closeButton.MouseButton1Click:Connect(function()
+    -- Cria partículas visíveis
+    local particles = Instance.new("ParticleEmitter")
+    particles.Color = ColorSequence.new(self.Theme.Accent)
+    particles.Rate = 100
+    particles.Lifetime = NumberRange.new(1)
+    particles.Speed = NumberRange.new(20)
+    particles.Size = NumberSequence.new(2)
+    particles.Parent = container
+    
+    -- Animação de fechar
+    self:Tween(container, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, function()
+        container:Destroy()
+    end)
+    
+    -- Remove partículas após animação
+    wait(0.3)
+    particles:Destroy()
+end)
 
     -- Container de conteúdo
     local content = self:Create("ScrollingFrame", {
